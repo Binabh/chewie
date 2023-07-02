@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:chewie/src/center_forward_button.dart';
 import 'package:chewie/src/center_play_button.dart';
 import 'package:chewie/src/chewie_player.dart';
 import 'package:chewie/src/chewie_progress_colors.dart';
@@ -13,6 +15,8 @@ import 'package:chewie/src/notifiers/index.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+
+import '../center_rewind_button.dart';
 
 class MaterialControls extends StatefulWidget {
   const MaterialControls({
@@ -367,32 +371,49 @@ class _MaterialControlsState extends State<MaterialControls>
     final bool showPlayButton =
         widget.showPlayButton && !_dragging && !notifier.hideStuff;
 
-    return GestureDetector(
-      onTap: () {
-        if (_latestValue.isPlaying) {
-          if (_displayTapped) {
-            setState(() {
-              notifier.hideStuff = true;
-            });
-          } else {
-            _cancelAndRestartTimer();
-          }
-        } else {
-          _playPause();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        CenterRewindButton(
+          backgroundColor: Colors.black54,
+          iconColor: Colors.white,
+          show: showPlayButton,
+          onPressed: _skipBack,
+        ),
+        GestureDetector(
+          onTap: () {
+            if (_latestValue.isPlaying) {
+              if (_displayTapped) {
+                setState(() {
+                  notifier.hideStuff = true;
+                });
+              } else {
+                _cancelAndRestartTimer();
+              }
+            } else {
+              _playPause();
 
-          setState(() {
-            notifier.hideStuff = true;
-          });
-        }
-      },
-      child: CenterPlayButton(
-        backgroundColor: Colors.black54,
-        iconColor: Colors.white,
-        isFinished: isFinished,
-        isPlaying: controller.value.isPlaying,
-        show: showPlayButton,
-        onPressed: _playPause,
-      ),
+              setState(() {
+                notifier.hideStuff = true;
+              });
+            }
+          },
+          child: CenterPlayButton(
+            backgroundColor: Colors.black54,
+            iconColor: Colors.white,
+            isFinished: isFinished,
+            isPlaying: controller.value.isPlaying,
+            show: showPlayButton,
+            onPressed: _playPause,
+          ),
+        ),
+        CenterForwardButton(
+          backgroundColor: Colors.black54,
+          iconColor: Colors.white,
+          show: showPlayButton,
+          onPressed: _skipForward,
+        ),
+      ],
     );
   }
 
@@ -540,6 +561,22 @@ class _MaterialControlsState extends State<MaterialControls>
         }
       }
     });
+  }
+
+  void _skipBack() {
+    _cancelAndRestartTimer();
+    final beginning = Duration.zero.inMilliseconds;
+    final skip =
+        (_latestValue.position - const Duration(seconds: 15)).inMilliseconds;
+    controller.seekTo(Duration(milliseconds: math.max(skip, beginning)));
+  }
+
+  void _skipForward() {
+    _cancelAndRestartTimer();
+    final end = _latestValue.duration.inMilliseconds;
+    final skip =
+        (_latestValue.position + const Duration(seconds: 15)).inMilliseconds;
+    controller.seekTo(Duration(milliseconds: math.min(skip, end)));
   }
 
   void _startHideTimer() {
